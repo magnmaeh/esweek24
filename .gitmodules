@@ -1,0 +1,9 @@
+[submodule "lf-flexpret"]
+	path = lf-flexpret
+	url = git@github.com:icyphy/lf-flexpret.git
+[submodule "lf-west-template"]
+	path = lf-zephyr-workspace
+	url = git@github.com:lf-lang/lf-west-template.git
+[submodule "lf-3pi-template"]
+	path = lf-3pi-workspace
+	url = git@github.com:lf-lang/lf-3pi-template.git
