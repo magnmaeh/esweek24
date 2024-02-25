@@ -8,6 +8,8 @@ root=$here/..
 
 source ${here}/lib.sh
 
+generate_normal_dist_data $it
+
 read -r -p "Compile and flash? [y/N] " response
 case "$response" in
     [yY][eE][sS]|[yY]) 

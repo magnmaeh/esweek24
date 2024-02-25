@@ -1,1 +1,4 @@
 results/**/*
+.metals
+.scala-build
+.vscode

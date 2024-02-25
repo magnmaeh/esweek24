@@ -4,7 +4,7 @@ target C {
     files: "../lib/nrf52/interrupt.c"
 };
 
-import Logger, Sensor, ProcessUnbounded, Actuator from "../lib/libControl.lf"
+import ControlCore from "../lib/libControl.lf"
 
 // TODO: Comment over-arching goal
 
@@ -13,23 +13,6 @@ preamble {=
 =}
 
 main reactor {
-    logical action actuate: int
-
-    log = new Logger(n_iterations = {= CONFIG_NITERATIONS =})
-
-    sensor = new Sensor(n_iterations = {= CONFIG_NITERATIONS =})
-    process = new ProcessUnbounded()
-    actuator = new Actuator(n_iterations = {= CONFIG_NITERATIONS =})
-    
-    sensor.ts -> log.ts_sensor
-    process.ts -> log.ts_process
-    actuator.ts -> log.ts_actuator
-
-    reaction(shutdown) {=
-        printf("main shutdown\n");
-    =}
-
-    sensor.y -> process.x
-    process.y -> actuator.x
+    ctrl = new ControlCore(n_iterations = {= CONFIG_NITERATIONS =});
 }
 

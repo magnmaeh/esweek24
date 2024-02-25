@@ -14,6 +14,18 @@ Flash:
 
 ## FlexPRET instructions
 
+FlexPRET uses a different version of the Lingua Franca compiler. Compile the lfc 0.4.1-SNAPSHOT in the following steps:
+
+```
+cd lf-flexpret/lingua-franca
+./gradlew assemble
+```
+
+Verify that the version is correct:
+`./bin/lfc --version`
+
+Should output 0.4.1-SNAPSHOT.
+
 
 
 ## 3pi instructions

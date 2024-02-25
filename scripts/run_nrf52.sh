@@ -8,6 +8,8 @@ root=$here/..
 
 source ${here}/lib.sh
 
+generate_normal_dist_data $it
+
 read -r -p "Compile and flash? [y/N] " response
 case "$response" in
     [yY][eE][sS]|[yY]) 
@@ -17,6 +19,7 @@ case "$response" in
         west lfc $root/lf/src/Control_nrf52.lf --build "-p always" --board nrf52dk_nrf52832
         west flash
         deactivate
+        cd -
         ;;
     *)
         echo "Skipping build and flash"

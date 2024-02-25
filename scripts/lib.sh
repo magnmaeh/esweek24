@@ -12,7 +12,7 @@ fi
 generate_normal_dist_data() {
     # Generate /tmp/config.h and /tmp/normal.txt, which are included
     # by the applications
-    python3 ${lflib_scripts}/normal.py $1
+    python3 $here/normal.py $1
 }
 
 prompt_any_key() {

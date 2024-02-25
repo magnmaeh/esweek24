@@ -1,0 +1,37 @@
+target C {
+    threading: false,
+    build: "../build_FlexPRET.sh",
+    cmake-include: "../lib/FlexPRET/interrupt.cmake",
+    files: "../lib/FlexPRET/interrupt.c"
+}
+
+import ControlCore from "../lib/libControl.lf"
+
+preamble {=
+    #include <platform.h>
+    #include "/tmp/config.h"
+
+    void setup_interrupts(void);
+    void disable_interrupts(void);
+=}
+
+main reactor {
+    timer t(100 ms, 1 s)
+
+    ctrl = new ControlCore(n_iterations = {= CONFIG_NITERATIONS =});
+
+    reaction(startup) {=
+        setup_interrupts();
+    =}
+
+    reaction(t) {=
+        // So user knows software is running
+        static bool on_off = false;
+        gpo_set_ledmask((on_off << 4));
+        on_off = !on_off;
+    =}
+
+    reaction(shutdown) {=
+        disable_interrupts();
+    =}
+}
