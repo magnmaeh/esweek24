@@ -1,0 +1,18 @@
+/** 
+ * This file is specific to LF-zephyr only.
+ *
+ */
+
+/ {
+    aliases {
+            intpin = &int0;
+    };
+
+    ints {
+            compatible = "gpio-keys";
+            int0: int_0 {
+                    gpios = < &gpio0 3 0 >;
+                    label = "User interrupt";
+            };
+    };
+};
