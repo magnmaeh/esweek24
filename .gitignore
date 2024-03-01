@@ -1,4 +1,5 @@
 results/**/*
+wave/*
 .metals
 .scala-build
 .vscode
