@@ -31,12 +31,11 @@ int main(void) {
     send_sync();
 
     for (int i = 0; i < CONFIG_NITERATIONS; i++) {
-        work_us(10000);
+        work_us(WORK_US_LOOP);
         clock_get(&timestamps[i]);
     }
 
-    disable_interrupts();
-    printf_custom("RP2040: Done app (bare-metal\n)");
+    shutdown();
     
     for (int i = 0; i < CONFIG_NITERATIONS; i++) {
         uint32_t diff = 0;

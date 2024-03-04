@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
 
-PLATFORMS = ('RPi',)
+PLATFORMS = ('FlexPRET', 'nrf52', 'RP2040', 'RPi',)
 BENCHMARKS_C  = list((f'C/{p}/{i}' for i in ('int', 'noint') for p in PLATFORMS))
 BENCHMARKS_LF = list((f'lf/{p}/int' for p in PLATFORMS))
 

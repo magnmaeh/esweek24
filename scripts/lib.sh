@@ -58,6 +58,7 @@ run_benchmark_noint() {
     if [ $2 == "FlexPRET" ]
     then
         make -C $C_exp flash TARGET=fpga
+        run_benchmark_common $1 $2 $3 noint
     elif [ $2 == "RPi" ]
     then
         run_benchmark_RPi_common $1 $2 $3 noint
@@ -78,6 +79,8 @@ run_benchmark_int() {
         then
             make -C $root/experiments/src-gen/Control_$2 flash TARGET=fpga
         fi
+        
+        run_benchmark_common $1 $2 $3 int
     elif [ $2 == "RPi" ]
     then
         run_benchmark_RPi_common $1 $2 $3 int
@@ -140,10 +143,12 @@ prompt_run_lf_benchmarks() {
                 make -C $root/experiments/src-gen/Control_$2 clean all TARGET=fpga WANT_DEBUG=false PRINTF_ENABLED=false
             elif [ $2 == "nrf52" ]
             then
-                source $root/lf-zephyr-workspace/.venv/bin/activate
-                west lfc $root/lf/src/Control_nrf52.lf --build "-p always" --board nrf52dk_nrf52832
+                cd $root/lf-zephyr-workspace/
+                source .venv/bin/activate
+                west lfc $root/experiments/lf/src/Control_nrf52.lf --build "-p always" --board nrf52dk_nrf52832 --lfc $root/../../lingua-franca/bin/lfc-dev
                 west flash
                 deactivate
+                cd -
             elif [ $2 == "RP2040" ]
             then
                 lfc -c $LF_exp

@@ -9,11 +9,14 @@
 #define GPIO_PERIODIC_INTS (14)
 #define GPIO_SPORADIC_INTS (15)
 
+uint32_t ninterrupts_periodic = 0;
+uint32_t ninterrupts_sporadic = 0;
+
 void callback(uint gpio, uint32_t event_mask) {
     if (gpio == GPIO_PERIODIC_INTS) {
-        work_us(100);
+        on_periodic_interrupt_common();
     } else if (gpio == GPIO_SPORADIC_INTS) {
-        work_us(1000);
+        on_sporadic_interrupt_common();
     } else {
         printf_custom("Got unknown int\n");
     }
@@ -43,4 +46,7 @@ void send_sync(void) {
 void disable_interrupts(void) {
     gpio_set_input_enabled(GPIO_PERIODIC_INTS, false);
     gpio_set_input_enabled(GPIO_SPORADIC_INTS, false);
+
+    printf_custom("Got %i periodic interrupts\n", ninterrupts_periodic);
+    printf_custom("Got %i sporadic interrupts\n", ninterrupts_sporadic);
 }

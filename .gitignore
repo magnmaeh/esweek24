@@ -3,3 +3,4 @@ wave/*
 .metals
 .scala-build
 .vscode
+build

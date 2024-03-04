@@ -30,7 +30,7 @@
 #elif __linux__
     #include <stdio.h>
     #define printout_log_macro(it, ts1, ts2, ts3) do { \
-        printf("[%i]: sampled: %lli, processed: %lli, actuated: %lli\n", \
+        printf("[%i]: sampled: %i, processed: %i, actuated: %i\n", \
             it, ts1, ts2, ts3 \
         ); \
     } while(0)
@@ -38,14 +38,14 @@
     #include <zephyr/kernel.h>
     #include <stdio.h>
     #define printout_log_macro(it, ts1, ts2, ts3) do { \
-        printf("[%i]: sampled: %lli, processed: %lli, actuated: %lli\n", \
+        printf("[%i]: sampled: %i, processed: %i, actuated: %i\n", \
             it, ts1, ts2, ts3 \
         ); \
     } while(0)
 #elif defined(PLATFORM_RP2040)
     #include <stdio.h>
     #define printout_log_macro(it, ts1, ts2, ts3) do { \
-        printf_custom("[%i]: sampled: %lli, processed: %lli, actuated: %lli\n", \
+        printf_custom("[%i]: sampled: %i, processed: %i, actuated: %i\n", \
             it, ts1, ts2, ts3 \
         ); \
     } while(0)
@@ -53,7 +53,7 @@
     #error "No platform defined!"
 #endif
 
-static inline void printout_log(const uint32_t it, const instant_t ts1, const instant_t ts2, const instant_t ts3) {
+static inline void printout_log(const uint32_t it, const uint32_t ts1, const uint32_t ts2, const uint32_t ts3) {
     printout_log_macro(it, ts1, ts2, ts3);
 }
 

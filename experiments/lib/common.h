@@ -7,6 +7,7 @@
 
 #if defined(PLATFORM_FLEXPRET)
     #include <flexpret_time.h>
+    #define USEC(t) (t * 1000LL)
     #define work_us_macro(x) do { \
         fp_wait_for(USEC(x)); \
     } while(0)
@@ -27,6 +28,29 @@
     #error "No platform defined!"
 #endif
 
+#if defined(PLATFORM_FLEXPRET)
+    #include <flexpret_io.h>
+    #define print_string(str) do { \
+        fp_print_string(str); \
+    } while(0)
+#elif __linux__
+    #include <stdio.h>
+    #define print_string(str) do { \
+        printf("%s", str); \
+    } while(0)
+#elif defined(PLATFORM_ZEPHYR)
+    #include <zephyr/kernel.h>
+    #define print_string(str) do { \
+        printf("%s", str); \
+    } while(0)
+#elif defined(PLATFORM_RP2040)
+    #define print_string(str) do { \
+        printf_custom("%s", str); \
+    } while(0)
+#else
+    #error "No platform defined!"
+#endif
+
 #include <stdint.h>
 
 static inline void work_us(const uint32_t us) {
@@ -37,5 +61,46 @@ static inline void work_us(const uint32_t us) {
 void configure_pins(void);
 void send_sync(void);
 void disable_interrupts(void);
+
+static inline void on_periodic_interrupt_common(void) {
+    extern uint32_t ninterrupts_periodic;
+    
+    ninterrupts_periodic++;
+    work_us(WORK_US_INT_PERIODIC);
+}
+
+static inline void on_sporadic_interrupt_common(void) {
+    extern uint32_t ninterrupts_sporadic;
+    
+    ninterrupts_sporadic++;
+    work_us(WORK_US_INT_SPORADIC);
+}
+
+static inline void shutdown(void) {
+    extern uint32_t ninterrupts_periodic;
+    extern uint32_t ninterrupts_sporadic;
+
+    disable_interrupts();
+
+    print_string("Done\n");
+
+#if defined(PLATFORM_FLEXPRET)
+    fp_print_string("Got ");
+    fp_print_int(ninterrupts_periodic);
+    fp_print_string(" periodic interrupts\n");
+
+    fp_print_string("Got ");
+    fp_print_int(ninterrupts_sporadic);
+    fp_print_string(" sporadic interrupts\n");
+#elif __linux__ || defined(PLATFORM_ZEPHYR)
+    printf("Got %i periodic interrupts\n", ninterrupts_periodic);
+    printf("Got %i sporadic interrupts\n", ninterrupts_sporadic);
+#elif defined(PLATFORM_RP2040)
+    printf_custom("Got %i periodic interrupts\n", ninterrupts_periodic);
+    printf_custom("Got %i sporadic interrupts\n", ninterrupts_sporadic);
+#else
+    #error "No platform defined!"
+#endif
+}
 
 #endif // LIBCOMMON_H

@@ -8,24 +8,9 @@ target C {
 import ControlCore from "../../lib/libControl.lf"
 
 preamble {=
-    #include <platform.h>
     #include "/tmp/config.h"
-
-    void setup_interrupts(void);
-    void disable_interrupts(void);
-    void send_sync(void);
 =}
 
 main reactor {
     ctrl = new ControlCore(n_iterations = {= CONFIG_NITERATIONS =});
-
-    reaction(startup) {=
-        setup_interrupts();
-        send_sync();
-    =}
-
-    reaction(shutdown) {=
-        disable_interrupts();
-        fp_print_string("Done\n");
-    =}
 }

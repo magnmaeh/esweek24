@@ -10,37 +10,14 @@ target C {
 
 import ControlCore from "../../lib/libControl.lf"
 
-// TODO: Comment over-arching goal
-
 preamble {=
     #include "/tmp/config.h"
-    
-    int configure_interrupts(void);
-    int set_sync_pin(void);
-    int disable_interrupts(void);
-    #include <zephyr/kernel.h>
 =}
 
 main reactor {
-    reaction(startup) {=
-        printf("Start app\n");
-        //configure_interrupts();
-        //set_sync_pin();
-    =}
-
-    timer t(100 msec, 10 msec)
-    reaction(t) {=
-        printk("Alive\n");
-    =}
+    ctrl = new ControlCore(n_iterations = {= 10 =});
 
     reaction(shutdown) {=
-        printk("WShutdown\n");
-    =}
-
-    //ctrl = new ControlCore(n_iterations = {= 10 =});
-
-    reaction(shutdown) {=
-        disable_interrupts();
         printf("Done app\n");
     =}
 }

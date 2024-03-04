@@ -1,13 +1,10 @@
 
 #include "/tmp/config.h"
 #include <zephyr/kernel.h>
+#include <stdlib.h>
 
 #define PLATFORM_ZEPHYR
 #include "../../../lib/common.h"
-
-int configure_interrupts(void);
-int set_sync_pin(void);
-int disable_interrupts(void);
 
 #define SECOND(t) (t * 1000000000LL)
 
@@ -26,21 +23,20 @@ int clock_get(uint32_t* t) {
 
 int main(void) {
     clock_init();
-    configure_interrupts();
+    configure_pins();
     printf("Start app\n");
 
-    uint32_t timestamps[CONFIG_NITERATIONS];
+    uint32_t *timestamps = malloc(sizeof(uint32_t) * CONFIG_NITERATIONS);
     
     clock_get(&begin);
-    set_sync_pin();
+    send_sync();
     
     for (int i = 0; i < CONFIG_NITERATIONS; i++) {
-        work_us(10000);
+        work_us(WORK_US_LOOP);
         clock_get(&timestamps[i]);
     }
 
-    disable_interrupts();
-    printf("Done app\n");
+    shutdown();
 
     for (int i = 0; i < CONFIG_NITERATIONS; i++) {
         uint32_t diff = 0;

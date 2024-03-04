@@ -18,7 +18,7 @@ NOW = date.today()
 
 NSAMPLES = 32768 # The maximum number of samples Waveforms allows
 LOGIC_HIGH_VOLTAGE = 5 # 5V is logic high
-INTERRUPT_STABLE_TIME_US = 1 # How long an interrupt must remain long for
+INTERRUPT_STABLE_TIME_US = 10 # How long an interrupt must remain long for
 
 TIME_PER_SAMPLE = (args.period / 1e3) / NSAMPLES
 INTERRUPT_STABLE_NSAMPLES = math.ceil((INTERRUPT_STABLE_TIME_US / 1e6) / TIME_PER_SAMPLE)

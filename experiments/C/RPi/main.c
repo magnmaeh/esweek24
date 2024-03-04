@@ -24,7 +24,7 @@ int main(void) {
         timestamps[i] = (ts.tv_sec - ts_begin.tv_sec) * (int) (1e9) + ts.tv_nsec;
     }
 
-    disable_interrupts();
+    shutdown();
     
     for (int i = 0; i < CONFIG_NITERATIONS; i++) {
         uint32_t diff = 0;

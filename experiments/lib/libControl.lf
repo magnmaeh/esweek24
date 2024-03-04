@@ -115,7 +115,6 @@ reactor ControlCore(n_iterations: int = 10) {
     =}
 
     reaction(shutdown) {=
-        disable_interrupts();
-        // Print done too?
+        shutdown();
     =}
 }
