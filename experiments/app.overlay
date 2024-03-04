@@ -1,0 +1,28 @@
+/** 
+ * This file is specific to LF-zephyr only.
+ *
+ */
+
+/ {
+    aliases {
+            periodic-int-pin = &int0;
+/*             sporadic-int-pin = &int1;
+            sync-pin = &out0; */
+    };
+
+    ints {
+            compatible = "gpio-keys";
+            int0: int_0 {
+                    gpios = < &gpio0 3 0 >;
+                    label = "User interrupt";
+            };
+/*             int1: int_1 {
+                    gpios = < &gpio0 4 0 >;
+                    label = "User interrupt";
+            };
+            out0: out_0 {
+                    gpios = < &gpio0 5 0 >;
+                    label = "User output";
+            }; */
+    };
+};

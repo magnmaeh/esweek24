@@ -6,20 +6,10 @@ it=$1
 here=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 root=$here/..
 
+platform=RP2040
 source ${here}/lib.sh
 
 generate_normal_dist_data $it
 
-read -r -p "Compile and flash? [y/N] " response
-case "$response" in
-    [yY][eE][sS]|[yY]) 
-        # Build and flash SW
-        lfc -c $root/lf/src/Control_RP2040.lf
-        picotool load -x $root/lf/bin/Control_RP2040.elf
-        ;;
-    *)
-        echo "Skipping build and flash"
-        ;;
-esac
-
-run_both_benchmarks RP2040 $it
+prompt_run_C_benchmarks $it $platform
+prompt_run_lf_benchmarks $it $platform

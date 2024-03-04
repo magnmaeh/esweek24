@@ -10,7 +10,7 @@ subparsers = parser.add_subparsers(dest='mode', required=True)
 sporadic_parser = subparsers.add_parser('sporadic')
 sporadic_parser.add_argument('-l', '--list', type=int, default=[], nargs='+', help='A list of sporadic interrupts')
 periodic_parser = subparsers.add_parser('periodic')
-periodic_parser.add_argument('-i', '--interrupt-period', type=int, help='The period to generate interrupts in microseconds (us)')
+periodic_parser.add_argument('-i', '--interrupt-period', type=int, required=True, help='The period to generate interrupts in microseconds (us)')
 
 args = parser.parse_args()
 

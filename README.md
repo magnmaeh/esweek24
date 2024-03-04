@@ -36,3 +36,10 @@ Compile an example program to test it works:
 `lfc src/HelloPico.lf`
 
 Make sure you have `picotool` installed, which is used for loading executables.
+
+
+## RPi instructions
+
+Set up ssh keys and config.
+
+Install WiringPi. Cmake

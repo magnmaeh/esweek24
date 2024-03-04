@@ -1,0 +1,38 @@
+target C {
+    platform: {
+        name: "rp2040",
+        board: "pololu_3pi_2040_robot"
+    },
+    single-threaded: true,
+    cmake-include: "../../lib/RP2040/interrupt.cmake",
+    files: [
+        "../../lib/RP2040/interrupt.c",
+        "../../lib/RP2040/printf_custom.c"
+    ]
+}
+
+import ControlCore from "../../lib/libControl.lf"
+
+preamble {=
+    #include "/tmp/config.h"
+    
+    void configure_pins(void);
+    void disable_interrupts(void);
+    void printf_custom_init(void);
+=}
+
+main reactor {
+    ctrl = new ControlCore(n_iterations = {= CONFIG_NITERATIONS =})
+
+    reaction(startup) {=
+        printf_custom_init();
+        configure_pins();
+        send_sync();
+    =}
+
+    reaction(shutdown) {=
+        disable_interrupts();
+        printf_custom("Done\n");
+    =}
+}
+

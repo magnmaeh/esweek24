@@ -6,21 +6,12 @@ it=$1
 here=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 root=$here/..
 
+platform=FlexPRET
 source ${here}/lib.sh
 
 generate_normal_dist_data $it
 
-read -r -p "Compile and flash? [y/N] " response
-case "$response" in
-    [yY][eE][sS]|[yY]) 
-        # Build and flash SW
-        export FLEXPRET_ROOT_DIR=$root/lf-flexpret/flexpret
-        $root/lf-flexpret/lingua-franca/bin/lfc -c $root/lf/src/Control_FlexPRET.lf
-        make -C $root/lf/src-gen/Control_FlexPRET clean all flash TARGET=fpga WANT_DEBUG=false PRINTF_ENABLED=false
-        ;;
-    *)
-        echo "Skipping build and flash"
-        ;;
-esac
+export FLEXPRET_ROOT_DIR=$root/lf-flexpret/flexpret
 
-#run_both_benchmarks FlexPRET $it
+prompt_run_C_benchmarks $it $platform
+prompt_run_lf_benchmarks $it $platform

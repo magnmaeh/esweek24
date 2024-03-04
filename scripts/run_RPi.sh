@@ -6,10 +6,13 @@ it=$1
 here=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 root=$here/..
 
-platform=nrf52
+platform=RPi
 source ${here}/lib.sh
 
 generate_normal_dist_data $it
+
+scp /tmp/config.h blueberry:/tmp
+scp /tmp/normal.txt blueberry:/tmp
 
 prompt_run_C_benchmarks $it $platform
 prompt_run_lf_benchmarks $it $platform
