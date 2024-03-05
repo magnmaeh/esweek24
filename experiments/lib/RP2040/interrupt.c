@@ -46,7 +46,4 @@ void send_sync(void) {
 void disable_interrupts(void) {
     gpio_set_input_enabled(GPIO_PERIODIC_INTS, false);
     gpio_set_input_enabled(GPIO_SPORADIC_INTS, false);
-
-    printf_custom("Got %i periodic interrupts\n", ninterrupts_periodic);
-    printf_custom("Got %i sporadic interrupts\n", ninterrupts_sporadic);
 }

@@ -44,6 +44,7 @@
         printf("%s", str); \
     } while(0)
 #elif defined(PLATFORM_RP2040)
+    int printf_custom(char *fmt, ...);
     #define print_string(str) do { \
         printf_custom("%s", str); \
     } while(0)

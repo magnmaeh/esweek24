@@ -4,6 +4,8 @@
 #define PLATFORM_RP2040
 #include "../../../lib/common.h"
 
+void printf_custom_init(void);
+
 int clock_get(uint32_t* t) {
     if (!t) {
         return -1;
@@ -22,7 +24,6 @@ int clock_get(uint32_t* t) {
 int main(void) {
     printf_custom_init();
     configure_pins();
-    printf_custom("RP2040: Start app (bare-metal)\n");
 
     uint32_t timestamps[CONFIG_NITERATIONS];
     uint32_t begin = 0;

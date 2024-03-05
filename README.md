@@ -43,6 +43,8 @@ Interrupts that arrive with some constant period (e.g., every 10 ms) are referre
 
 Interrupts that arrive in a random/sporadic fashion are referred to as sporadic interrupts. This could for instance be packets arriving on a network interface. The characteristics of such packet arrivals are very application-based, but for this experiement it is assumed that a) multiple packets tend to arrive in a small time window and b) the network interface does not receive packets most of the time.
 
+In the experiments, periodic and sporadic interrupts are handled differently. Periodic interrupts require computation for `WORK_US_INT_PERIODIC` time, while sporadic interrupts require `WORK_US_INT_SPORADIC` time to compute. These macros are set in `experiments/lib/common.h`. These are intended to be different. Because of this, it is important not to mix up pin connections between the waveform generator and the platform.
+
 Figure 2: Periodic interrupts
 
 ![Periodic interrupts](docs/pics/periodic-interrupts.png)
@@ -65,28 +67,83 @@ The experiments are implemented in both C and [Lingua Franca](https://www.lf-lan
 Figure 4: A basic control loop with lables for each location jitter is evaluted.
 ![Basic control loop](./docs/pics/ControlLoop.drawio.png)
 
+# Interrupt pulse generation
+
+Digilent Analog Discovery comes with a simple-to-use GUI-based program called [Waveforms](https://digilent.com/shop/software/digilent-waveforms/). A [guide](https://digilent.com/reference/test-and-measurement/guides/waveforms-waveform-generator) explains how to use the waveform generator. The waveform generator features some methods to generate waveform patterns, but generating sporadic interrupt pulses at specific times (such as the ones in Figure 3) is best done using Python.
+
+`scripts/genwaves.py` generates a .csv file, which can be uploaded to the Waveform generator. See Figure 5, which highlights some aspects. This list is not meant as a complete guide; refer to the official documentation for more in-depth details.
+
+1. Select which channels (W1, W2) to use.
+2. Select whether they shall be synchronized to some trigger. Select `no synchronization` for testing purposes, but use `independent` when using the GPIO trigger signal from the platform.
+3. Select `custom` to be able to upload `.csv` files.
+4. Import a `.csv` file here.
+5. Set the trigger type for the channel (W1, W2). The experiments are set up to provide a rising edge on a GPIO pin when they have finished initalization, so select `Trigger 1` (or 2) with rising edge to synchronize the experiments and the waveform generator.
+
+Note: For some reason, the waveforms do not display correctly. To verify that the waveforms generated indeed are correct, a possible solution is to connect W1 to a digital input and probe it using the logic analyzer. (How convenient!)
+
+Figure 5: 
+![Waveforms setup](./docs/pics/waveforms-setup.png)
+
+## Other methods of interrupt pulse generation
+
+There are of course other ways to generate interrupt pulses. Some ideas are:
+1. Use a USB<->UART dongle, set it to a low baudrate, and write `0x00` to it. That might yield a low pulse on the `TX` signal for enough time. However, it is not very easy to control.
+2. Use an additional microcontroller. It does however increase the complexity of the experiment and introduces *yet* another embedded system to manage.
+
 # Platform specifics
 
-The four platforms all have their own setup guides.
+The four platforms all have their own setup guides. The below only describes what additional setup or changes are necessary for this experiment.
 
 ## FlexPRET
 
-For this experiment, FlexPRET is run on a Field-Programmable Gated Array (FPGA). FPGAs can be reconfigured to hold any digital circuit, implemented in hardware descriptive languages (HDL). 
+For this experiment, FlexPRET is run on a Field-Programmable Gated Array (FPGA). FPGAs can be reconfigured to hold any digital circuit, implemented in hardware descriptive languages (HDL). Processors are just complicated digital circuits.
 
 To get FlexPRET running on an FPGA, refer to the documentation available in [FlexPRET's README.md](./lf-flexpret/flexpret/README.md). Make sure to build FlexPRET with at least three hardware threads - although four or eight are probably the most sensible options.
 
-See Figure 5 for the physical setup.
+At the time of writing, FlexPRET is not integrated into the Lingua Franca compiler (`lfc`) and uses version 0.4.1. Therefore, build the 0.4.1 version of the compiler.
+
+```
+cd lf-flexpret/lingua-franca
+./gradlew assemble
+```
+
+Verify that it indeed is version 0.4.1.
+
+```
+./bin/lfc --version
+```
+
+It should output `0.4.1-SNAPSHOT`. Make sure you are using this `lfc` when compiling for FlexPRET. This is done in the automated scripts.
+
+### Physical setup
+
+See Figure 6 for the physical setup.
 1. This is a USB<->UART dongle used to communicate with FlexPRET. It is used to transmit software to FlexPRET's bootloader and acts as standard output after. The timestamp array is output here. Three jumpers are connected: `UART_RX`, `UART_TX` and ground.
 2. This is the Digilent Analog Discovery used to generate waveform sinals. Four jumpers are connected: two waveform output signals, one trigger signal, and ground.
 3. This is power to the Zedboard (upmost) and micro-USB to reconfigure the FPGA.
 
-The exact mappings of the pins are not easily derived from Figure 5. This is on purpose, because the pin mapping is likely to become outdated. Refer to FlexPRET documentation or the relevant `.xdc` file to find this mapping.
+The exact mappings of the pins are not easily derived from Figure 6. This is on purpose, because the pin mapping is likely to become outdated. Refer to FlexPRET documentation or the relevant `.xdc` file to find this mapping.
 
-Figure 5: The physical setup for FlexPRET.
-![FlexPRET physical setup labled](./docs/pics/FlexPRET-physical-setup-labled.png)
+Figure 6: The physical setup for FlexPRET.
+![FlexPRET setup labled](./docs/pics/FlexPRET-setup-labled.png)
 
 ## RP2040
 
+Refer to the [official documentation](https://www.lf-lang.org/docs/embedded/rp2040) for intial setup. Some steps can be skipped, as the documentation is based on an introductory course to embedded systems.  The documentation uses the RP2040 integrated into [Pololu 3pi+ 2040 robot](https://www.pololu.com/docs/0J86), so aspects of the guide are not relevant. 
+
+To upload new software to the RP2040, the `BOOTSEL` button must be pressed down while the system is powered on. The only way to power on/off the system is to plug a micro-USB in and out. By default, the RP2040 uses the same micro-USB connection for standard output, but getting it to standard output mode requires another plug in and out, without pressing down the button. From experience, this does not always work - the `/dev/ttyACM0` does not always appear in this case.
+
+Another method to get "standard" output is to connect another USB<->UART dongle and replace `printf` with `printf_custom` that just prints to that UART instead. That was done in `experiments/lib/RP2040/printf_custom.c`. This automates the experiment slightly more, but in return adds another piece of hardware. Feel free to use the micro-USB if this is easier - but this requires some slight changes to the C code.
+
+### Physical setup
+
+See Figure 7 for the physical setup. The RP2040's pinout can be found [here](https://www.raspberrypi.com/documentation/microcontrollers/raspberry-pi-pico.html).
+
+1. This is a USB<->UART dongle used to retrieve the timestamp array when the program/experiment is finished. Three jumpers are connected: `UART_RX`, `UART_TX` and ground. They are connected to the pins 1-3 on RP2040.
+2. This is the Digilent Analog Discovery, which is used for waveform generation. The Discovery's T1 pin is connected to pin 17, and its W1-W2 pins are connected to pins 19-20. Make sure not to mix up periodic/sporadic interrupts.
+
+Figure 7: The physical setup for RP2040.
+![RP2040 setup labled](./docs/pics/RP2040-setup-labled.png)
 
 ## nrf52dk_nrf52832 (aka nrf52)
 
@@ -103,20 +160,6 @@ Compile the program manually to test it works:
 Flash:
 `west flash`
 
-
-## FlexPRET instructions
-
-FlexPRET uses a different version of the Lingua Franca compiler. Compile the lfc 0.4.1-SNAPSHOT in the following steps:
-
-```
-cd lf-flexpret/lingua-franca
-./gradlew assemble
-```
-
-Verify that the version is correct:
-`./bin/lfc --version`
-
-Should output 0.4.1-SNAPSHOT.
 
 
 
