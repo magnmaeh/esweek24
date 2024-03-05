@@ -1,6 +1,31 @@
 # esweek24
 
-Setup for running benchmarks for paper in [Embedded Systems week](https://esweek.org/) 2024.
+Setup for running experiments for paper in [Embedded Systems week](https://esweek.org/) 2024.
+
+# Table of contents
+
+- [esweek24](#esweek24)
+- [Table of contents](#table-of-contents)
+- [Experiments](#experiments)
+  - [Setup](#setup)
+    - [Periodic vs. sporadic interrupts](#periodic-vs-sporadic-interrupts)
+    - [C vs. Lingua Franca](#c-vs-lingua-franca)
+- [Prerequisites](#prerequisites)
+  - [Hardware](#hardware)
+  - [Software](#software)
+- [Interrupt pulse generation](#interrupt-pulse-generation)
+  - [Other methods of interrupt pulse generation](#other-methods-of-interrupt-pulse-generation)
+- [Platform specifics](#platform-specifics)
+  - [FlexPRET](#flexpret)
+    - [Physical setup](#physical-setup)
+  - [RP2040](#rp2040)
+    - [Physical setup](#physical-setup-1)
+  - [nrf52dk\_nrf52832 (aka nrf52)](#nrf52dk_nrf52832-aka-nrf52)
+  - [Raspberry Pi 3b+ (aka RPi)](#raspberry-pi-3b-aka-rpi)
+    - [ssh key login](#ssh-key-login)
+    - [Software setup](#software-setup)
+    - [Hardware setup](#hardware-setup)
+
 
 # Experiments
 
@@ -14,13 +39,13 @@ The three latter span the typical design space of an embedded system; from bare-
 
 The purpose of the experiments is to evaluate jitter (time deviation of computations) on these four platforms, and techniques to mitigate them. These techniques include computer architecture design for predictable timing (e.g., precision-timed machines) and using programming languages with timing semantics (e.g., Lingua Franca).
 
-## Physical setup
+## Setup
 
-Figure 1 shows the physical setup for an experiment. The *platform* block is replaced by either of the four platforms, but can be replaced by any other platform as well. 
+Figure 1 shows the setup for an experiment. The *platform* block is replaced by either of the four platforms, but can be replaced by any other platform as well. 
 
-Figure 1: A diagram of the physical setup for an experiment.
+Figure 1: A diagram of the setup for an experiment.
 
-![Physical setup diagram](docs/pics/esweek24-experiment-setup.drawio.png)
+![Setup diagram](docs/pics/esweek24-experiment-setup.drawio.png)
 
 
 The personal computer is connected to a [Digilent Analog Discovery](https://digilent.com/reference/test-and-measurement/analog-discovery-2/start), which acts as a waveform generator. Waveforms can be generated on at maximum two output pins - this setup generates *periodic* interrupts on one and *sporadic* interrupts on another. Waveform generation can be triggered by e.g., the rising edge of an external signal. This trigger signal is connected to a general-purpose IO (GPIO) pin on the target platform, and set high when the platform has finished initalization.
@@ -66,6 +91,16 @@ The experiments are implemented in both C and [Lingua Franca](https://www.lf-lan
 
 Figure 4: A basic control loop with lables for each location jitter is evaluted.
 ![Basic control loop](./docs/pics/ControlLoop.drawio.png)
+
+# Prerequisites
+
+## Hardware
+
+TBD
+
+## Software
+
+TBD
 
 # Interrupt pulse generation
 
@@ -147,37 +182,106 @@ Figure 7: The physical setup for RP2040.
 
 ## nrf52dk_nrf52832 (aka nrf52)
 
+This setup is arguably the simplest. Standard output is available from the micro-USB interface. The pins are connected like so:
+
+* Disovery's W1 -> nrf52's P0.03 (A0)
+* Disovery's W2 -> nrf52's P0.04
+* Disovery's trigger -> nrf52's P0.05
+* Disovery's ground -> nrf52's ground
+
+Figure 8: Setup for nrf52.
+![nrf52 setup](./docs/pics/nrf52-setup.jpg)
 
 ## Raspberry Pi 3b+ (aka RPi)
 
-## Zephyr instructions
+There are plenty of guides availble for setting up Raspberry Pi (RPi). Setting up a static IP address is recommened. Furthermore, setting up `ssh` keys and configuration to skip password login is important for automating the experiments. The setup assumes the RPi is accessible over `ssh`.
 
-Follow steps 2-6 in the [official documentation](https://www.lf-lang.org/docs/embedded/zephyr#setting-up-the-lf-zephyr-workspace). (Version 0.6.0.)
+### ssh key login
 
-Compile the program manually to test it works:
-`west lfc ../lf/src/Control_nrf52.lf --build "-p always" --board nrf52dk_nrf52832`
+Start off by generating a key pair.
 
-Flash:
-`west flash`
+```
+cd ~/.ssh
+ssh-keygen
+```
 
+Name the key something descriptive. (The default name is not descriptive.) Copy the key over to the RPi. This will require a password.
 
+```
+ssh-copy-id <username>@<hostname> -i <path to key.pub>
+```
 
+Attempt to login using the key only to make sure it works. (Note: Use the private key here, not the `.pub` one.)
 
-## 3pi instructions
+```
+ssh <username>@<hostname> -i <path to key>
+```
 
-Follow the [official documentation](west lfc ../lf/src/Control_nrf52.lf --build "-p always" --board nrf52dk_nrf52832) for 3pi setup. (Version 0.6.0.)
+Next, add the following lines to the file `~/.ssh/config`. If it does not exist, create it.
 
-Compile an example program to test it works:
-`lfc src/HelloPico.lf`
+```
+Host <name>
+    HostName <hostname>
+    User <username>
+    IdentityFile <path to private key>
+```
 
-Make sure you have `picotool` installed, which is used for loading executables.
+An example file:
 
+```
+Host blueberry
+    HostName 10.42.0.65
+    User blueberry
+    IdentityFile ~/.ssh/rpi/blueberry
+```
 
-## RPi instructions
+Now it should be possble to run
 
-Set up ssh keys and config.
+```
+ssh <name>
+```
 
-Install WiringPi. Cmake
+to login without using a password. With this setup, it might be useful to disable password logins - this makes the RPi much more secure.
 
+### Software setup
 
+The RPi must install WiringPi and Cmake. Unfortunately, as of 2024, WiringPi was discontinued by the initial author. See the previously [initial website](http://wiringpi.com/index.html). Fortunately, it is kept alive on [Github](https://github.com/WiringPi/WiringPi). Install it using the guide there.
 
+Using WiringPi, it is possible to check GPIO pins using `gpio readall`. Verify that it works:
+
+```
+gpio mode 15 out
+gpio write 15 0
+gpio readall
+gpio write 15 1
+gpio readall
+```
+
+You should be able to see some changes on the pin labeled wPi 15, as in Figure 9. The `gpio` program is just a utility; the underlying library is used in the program/experiment.
+
+Warning: WiringPi uses a different numbering scheme of RPi's GPIO pins. In `gpio readall`, the `BCM` column refers to the numbering scheme in the RPi documentation. Everything else uses the wPi numbering scheme, however.
+
+Also install Cmake:
+
+```
+sudo apt install cmake
+```
+
+Figure 9: Output from testing gpio utility program.
+![RPi GPIO check](./docs/pics/RPi-gpio-check.png)
+
+The Lingua Franca compiler does not need to be installed on the RPi, because the compiler is with the `-n` option on the host computer. This only generates C code. The code is then copied to the RPi using `scp` and compiled there. The extensive use of `scp` is the reason why the setup in [ssh key login](./README.md#ssh-key-login) was necessary.
+
+### Hardware setup
+
+Figure 10 depicts the hardware setup.
+
+1. Ethernet connection to the RPi. WiFi is another option.
+2. Digilent Analog Discover, which is used to generate interrupt pulses. Four jumpers are connected:
+   1. Discovery's ground -> RPi's ground
+   2. Discovery's trigger -> RPi's `wPi` 15 (or `BCM` 14)
+   3. Discovery's W1 -> RPi's `wPi` 16 (or `BCM` 15)
+   4. Discovery's W2 -> RPi's `wPi` 1 (or `BCM` 18)
+
+Figure 10: RPi setup.
+![RPi setup](./docs/pics/RPi-setup.png)
