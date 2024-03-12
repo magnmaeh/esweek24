@@ -4,4 +4,5 @@ cd ~/projects/c-lf-bench/C
 gpio mode 15 out
 gpio write 15 0
 gcc *.c -o run.elf -lwiringPi
-sudo ./run.elf > results.txt
+
+./run.elf > results.txt

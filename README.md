@@ -60,7 +60,7 @@ Each program/experiment running on the platform is implemented with the followin
 
 The timestamp arrays are then stored on disk and later analyzed.
 
-The same program/experiment can be run with and without interrupts - the only difference is whether waveform generation on the Digilent Analog Discovery is enabled or disabled. The results show that running the experiments with interrupt generation introduces jitter into the timestamp array.
+The same program/experiment can be run with and without interrupts - the only difference is whether waveform generation on the Digilent Analog Discovery is enabled or disabled. The results show that running the experiments with interrupt generation introduces jitter into the timestamp array for all platforms except FlexPRET.
 
 ### Periodic vs. sporadic interrupts
 
@@ -68,7 +68,7 @@ Interrupts that arrive with some constant period (e.g., every 10 ms) are referre
 
 Interrupts that arrive in a random/sporadic fashion are referred to as sporadic interrupts. This could for instance be packets arriving on a network interface. The characteristics of such packet arrivals are very application-based, but for this experiement it is assumed that a) multiple packets tend to arrive in a small time window and b) the network interface does not receive packets most of the time.
 
-In the experiments, periodic and sporadic interrupts are handled differently. Periodic interrupts require computation for `WORK_US_INT_PERIODIC` time, while sporadic interrupts require `WORK_US_INT_SPORADIC` time to compute. These macros are set in `experiments/lib/common.h`. These are intended to be different. Because of this, it is important not to mix up pin connections between the waveform generator and the platform.
+In the experiments, periodic and sporadic interrupts are handled differently. Periodic interrupts require computation for `WORK_AMOUNT_INT_PERIODIC` time, while sporadic interrupts require `WORK_AMOUNT_INT_SPORADIC` time to compute. These macros are set in `experiments/lib/common.h`. These are intended to be different. Because of this, it is important not to mix up pin connections between the waveform generator and the platform.
 
 Figure 2: Periodic interrupts
 

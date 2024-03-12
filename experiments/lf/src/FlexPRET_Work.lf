@@ -1,0 +1,12 @@
+target C {
+    build: "../../build_FlexPRET.sh",
+    cmake-include: "../../lib/FlexPRET/interrupt.cmake",
+    files: "../../lib/FlexPRET/interrupt.c",
+    threading: false
+}
+
+import WorkCore from "../../lib/libWork.lf"
+
+main reactor {
+    ctrl = new WorkCore()
+}

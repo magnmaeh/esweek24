@@ -7,6 +7,7 @@ target C {
 
 preamble {=
     #include "lf_common.h"
+    #include "/tmp/config.h"
 =}
 
 reactor Logger(n_iterations: int = 10) {
@@ -35,7 +36,7 @@ reactor Logger(n_iterations: int = 10) {
 
     reaction(shutdown) {=
         for (int i = 0; i < self->n_iterations; i++) {
-            printout_log(
+            printout_log3(
                 i, 
                 self->ts[3 * i + 0],
                 self->ts[3 * i + 1],
@@ -72,7 +73,7 @@ reactor ProcessUnbounded {
 
     reaction(x) -> y, ts {=
         // "Process" for value time, this introduces jitter
-        work_us(x->value);
+        work_amount(x->value);
 
         lf_set(y, x->value);
         lf_set(ts, lf_time_physical() - lf_time_logical());
@@ -95,7 +96,7 @@ reactor Actuator(n_iterations: int = 10) {
     =}
 }
 
-reactor ControlCore(n_iterations: int = 10) {
+reactor ControlCore {
     log = new Logger(n_iterations = {= CONFIG_NITERATIONS =})
 
     sensor = new Sensor(n_iterations = {= CONFIG_NITERATIONS =})
@@ -108,6 +109,30 @@ reactor ControlCore(n_iterations: int = 10) {
 
     sensor.y -> process.x
     process.y -> actuator.x
+
+    reaction(startup) {=
+        configure_pins();
+        send_sync();
+    =}
+
+    reaction(shutdown) {=
+        shutdown();
+    =}
+}
+
+reactor ControlCoreDelayed {
+    log = new Logger(n_iterations = {= CONFIG_NITERATIONS =})
+
+    sensor = new Sensor(n_iterations = {= CONFIG_NITERATIONS =})
+    process = new ProcessUnbounded()
+    actuator = new Actuator(n_iterations = {= CONFIG_NITERATIONS =})
+
+    sensor.ts -> log.ts_sensor
+    process.ts -> log.ts_process
+    actuator.ts -> log.ts_actuator
+
+    sensor.y -> process.x
+    process.y -> actuator.x after 5 msec
 
     reaction(startup) {=
         configure_pins();

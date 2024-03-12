@@ -15,4 +15,4 @@ scp /tmp/config.h blueberry:/tmp
 scp /tmp/normal.txt blueberry:/tmp
 
 prompt_run_C_benchmarks $it $platform
-prompt_run_lf_benchmarks $it $platform
+prompt_run_lf_benchmarks $it $platform $LF_exp_control

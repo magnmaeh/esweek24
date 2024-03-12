@@ -1,0 +1,23 @@
+target C {
+    platform: {
+        name: "rp2040",
+        board: "pololu_3pi_2040_robot"
+    },
+    single-threaded: true,
+    cmake-include: "../../lib/RP2040/interrupt.cmake",
+    files: [
+        "../../lib/RP2040/interrupt.c",
+        "../../lib/RP2040/printf_custom.c"
+    ]
+}
+
+import ControlCoreDelayed from "../../lib/libControl.lf"
+
+main reactor {
+    ctrl = new ControlCoreDelayed()
+    
+    reaction(startup) {=
+        printf_custom_init();
+    =}
+}
+

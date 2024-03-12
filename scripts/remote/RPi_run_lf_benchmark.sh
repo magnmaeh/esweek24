@@ -7,4 +7,5 @@ gpio write 15 0
 mkdir -p build && cd build
 cmake ..
 make
-./Control_RPi > ../results.txt
+
+./RPi_$1 > ../results.txt

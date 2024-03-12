@@ -19,7 +19,7 @@ int main(void) {
 
     struct timespec ts;
     for (int i = 0; i < CONFIG_NITERATIONS; i++) {
-        work_us(WORK_US_LOOP);
+        work_amount(WORK_AMOUNT_LOOP);
         clock_gettime(CLOCK_REALTIME, &ts);
         timestamps[i] = (ts.tv_sec - ts_begin.tv_sec) * (int) (1e9) + ts.tv_nsec;
     }

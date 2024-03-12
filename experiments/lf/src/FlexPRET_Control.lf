@@ -5,12 +5,8 @@ target C {
     threading: false
 }
 
-import ControlCore from "../../lib/libControl.lf"
-
-preamble {=
-    #include "/tmp/config.h"
-=}
+import ControlCoreDelayed from "../../lib/libControl.lf"
 
 main reactor {
-    ctrl = new ControlCore(n_iterations = {= CONFIG_NITERATIONS =});
+    ctrl = new ControlCoreDelayed();
 }

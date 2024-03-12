@@ -1,0 +1,58 @@
+target C {
+    files: [
+        "../lib/common.h",
+        "../lib/lf_common.h"
+    ],
+    logging: debug
+}
+
+preamble {=
+    #include "lf_common.h"
+    #include "/tmp/config.h"
+=}
+
+reactor Logger(n_iterations: int = 10) {
+    input ts: instant_t
+
+    state iteration: int = 0
+    state ts: instant_t*
+
+    reaction(startup) {=
+        self->ts = malloc(self->n_iterations * sizeof(instant_t));
+    =}
+
+    reaction(ts) {=
+        self->ts[self->iteration++] = ts->value;
+        if (self->iteration == self->n_iterations) {
+            lf_request_stop();
+        }
+    =}
+
+    reaction(shutdown) {=
+        for (int i = 0; i < self->n_iterations; i++) {
+            printout_log1(i, self->ts[i]);
+        }
+        free(self->ts);
+    =}
+}
+
+reactor WorkCore {
+    output ts: instant_t
+    timer t(50 msec, 100 msec)
+
+    log = new Logger(n_iterations = {= CONFIG_NITERATIONS =})
+
+    reaction(startup) {=
+        configure_pins();
+        send_sync();
+    =}
+
+    reaction(t) -> log.ts {=
+        work_amount(WORK_AMOUNT_LOOP);
+        lf_set(log.ts, lf_time_physical() - lf_time_logical());
+    =}
+
+    reaction(shutdown) {=
+        shutdown();
+    =}
+}

@@ -32,12 +32,12 @@ int main(void) {
     if (!timestamps) {
         fp_print_string("Could not malloc\n");
     }
-    
+
     uint32_t begin = rdtime();
     send_sync();
 
     for (int i = 0; i < CONFIG_NITERATIONS; i++) {
-        fp_delay_for(WORK_US_LOOP * 1000);
+        work_amount(WORK_AMOUNT_LOOP);
         timestamps[i] = rdtime();
     }
 

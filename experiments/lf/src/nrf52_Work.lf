@@ -1,0 +1,16 @@
+target C {
+    platform: {
+        name: "Zephyr",
+        board: nrf52dk_nrf52832,
+    },
+    cmake-include: "../../lib/nrf52/interrupt.cmake",
+    files: "../../lib/nrf52/interrupt.c",
+    single-threaded: true
+};
+
+import WorkCore from "../../lib/libWork.lf"
+
+main reactor {
+    ctrl = new WorkCore();
+}
+

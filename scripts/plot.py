@@ -1,175 +1,227 @@
 import re
-import sys
-import os
+import argparse
+import pandas
+import seaborn as sns
 import matplotlib.pyplot as plt
-import matplotlib
 import numpy as np
 
-PLATFORMS = ('FlexPRET', 'nrf52', 'RP2040', 'RPi',)
-BENCHMARKS_C  = list((f'C/{p}/{i}' for i in ('int', 'noint') for p in PLATFORMS))
-BENCHMARKS_LF = list((f'lf/{p}/int' for p in PLATFORMS))
+from scipy import stats
+from pathlib import Path
 
-# TODO: Find more hatches
-HATCH = ["*", "//", "...", "---", "OO", "*", "//", "...", "---", "OO"]
-CMAP = matplotlib.cm.get_cmap("tab10").colors
-NTICKS = 10
-SCRIPTPATH = os.path.dirname(__file__)
+PLATFORMS = ['FlexPRET', 'nrf52', 'RP2040', 'RPi']
+LANGUAGES = ['C', 'lf']
+LF_BENCHMARK_NAMES = ['Control', 'Work']
 
-plt.rcParams.update({'font.size': 26})
+parser = argparse.ArgumentParser()
+parser.add_argument('-p', '--platforms', type=str, nargs='+', choices=PLATFORMS, default=PLATFORMS)
+parser.add_argument('-b', '--benchmarks', type=str, nargs='+', choices=LANGUAGES, default=LANGUAGES)
+parser.add_argument('-i', '--iterations', type=int, required=True)
 
-def line_to_dict(line: str, type: str):
-    """
-    Convert a line from [<n>]: <n> to a dictionary.
-    """
+args = parser.parse_args()
 
-    ret = re.findall(r'\d+', line)
-    if type == 'C':
-        return {
-            int(ret[0]): {
-                'sampled': int(ret[1])
-            }
-        }
-    elif type == 'lf':
-        return {
-            int(ret[0]): {
-                'sampled': int(ret[1]),
-                'processed': int(ret[2]),
-                'actuated': int(ret[3])
-            }
-        }
-    else:
-        assert(False)
+BENCHMARKS_C  = list((f'C/{p}/{i}' for i in ('int', 'noint') for p in args.platforms))
+BENCHMARKS_LF = list((f'lf/{p}/{b}/int' for p in args.platforms for b in LF_BENCHMARK_NAMES))
 
-def file_to_dict(file: str, type: str):
-    if type == 'C':
-        with open(file, 'r') as f:
-            d = dict()
-            for line in f.readlines():
-                if '[' in line:
-                    d.update(line_to_dict(line, type))
-    elif type == 'lf':
-        first = True
-        with open(file, 'r') as f:
-            d = dict()
-            for line in f.readlines():
-                if 'sampled:' in line:
-                    if first:
-                        first = False
-                        continue
-                    #if 'Laptop' not in file:
-                    #    line = line[4:]
-                    d.update(line_to_dict(line, type))
-    return d
+HERE = Path(__file__).parent.resolve()
 
-def benchmarks_to_dict(niterations, type):
-    d = dict()
-    benchmarks = BENCHMARKS_C if type == 'C' else BENCHMARKS_LF
-    for b in benchmarks:
-        path = SCRIPTPATH + f'/../results/{b}-it{niterations}.txt'
-        d[b] = file_to_dict(path, type)
-    return d
+def line_to_numbers(line: str):
+    return re.findall(r'\d+', line)
 
-def dict_to_list(dict, key: str) -> list:
-    l = list()
-    for e in dict:
-        l.append(dict[e][key])
-    return l
+def file_to_lists(file, interrupts):
+    idxs = list()
+    ts1 = list()
+    ts2 = list()
+    ts3 = list()
 
-def flatten(dict):
-    l = list()
-    for e in dict:
-        l += dict[e]
-    return l
+    for line in file:
+        if 'periodic' in line:
+            print(line, interrupts)
+            nperiodic_ints = int(re.findall(r'\d+', line)[0])
+            if interrupts:
+                assert (nperiodic_ints > 0)
+            else:
+                assert (nperiodic_ints == 0)
+        elif 'sporadic' in line:
+            print(line, interrupts)
+            nsporadic_ints = int(re.findall(r'\d+', line)[0])
+            if interrupts:
+                assert (nsporadic_ints > 0)
+            else:
+                assert (nsporadic_ints == 0)
+        if '[' in line:
+            ret = line_to_numbers(line)
+            idxs.append(ret[0])
+            ts1.append(float(ret[1]))
+            if len(ret) == 4:
+                ts2.append(float(ret[2]))
+                ts3.append(float(ret[3]))
+            else:
+                ts2 = None
+                ts3 = None
 
-#DATA_LF = benchmarks_to_dict(sys.argv[1], 'lf')
-DATA_C  = benchmarks_to_dict(sys.argv[1], 'C')
+    ts1.sort()
+    if ts2:
+        ts2.sort()
+    if ts3:
+        ts3.sort()
 
-TITLES = {
-    'sampled': 'Input jitter distribution for different implementations of control loop',
-    'processed': 'Processing jitter distribution for different implementations of control loop',
-    'actuated': 'Output jitter distribution for different implementations of control loop'
-}
+    return idxs, [ts1, ts2, ts3]
 
-for type in ('sampled',):
-    workset = {x: dict_to_list(DATA_C[x], type) for x in BENCHMARKS_C}
-    workset_flat = flatten(workset)
-    workset_min = min(workset_flat)
-    workset_max = max(workset_flat)
+def benchmark_to_dataframe(benchmark, iterations):
+    print(f'Processing {benchmark}')
+    
+    with open(str(HERE / '..' / 'results' / benchmark) + f'-it{iterations}.txt', 'r') as f:
+        file = f.readlines()
+    
+    lang, platform, have_int = benchmark.split('/')
+    _, timestamps = file_to_lists(file, have_int == 'int')
+    return pandas.DataFrame({
+        'platform': platform,
+        'have_int': True if have_int == 'int' else False,
+        'language': lang,
+        'ts0': timestamps[0],
+        'ts1': timestamps[1],
+        'ts2': timestamps[2]
+    })
 
-    print("min:", workset_min)
-    print("max:", workset_max)
+def select_dataframes(dataframes, int: bool, lang: str, platforms: list[str] = args.platforms):
+    ret = list()
+    for d in dataframes:
+        ret.append(d[(d.have_int == int) & (d.language == lang) & (d.platform.isin(platforms))])
+    return pandas.concat(ret)
 
-    step = (workset_max - workset_min) / NTICKS
-    partitions = [ int(workset_min + x * step)  for x in range(NTICKS + 1) ]
+def filter_quantile(df, key):
+    q_high = df[key].quantile(0.99)
+    return df[(df[key] < q_high)]    
 
-    counts = dict()
-    for e in workset:
-        lower = partitions[0]
-        upper = partitions[1]
-        counts[e] = dict()
-        for limit in partitions[1:]:
-            counts[e][lower] = len(list(filter(lambda x: lower <= x <= upper, workset[e])))
+dataframes = list()
+if 'C' in args.benchmarks:
+    for b in BENCHMARKS_C:
+        dataframes.append(
+            benchmark_to_dataframe(b, args.iterations)
+        )
 
-            lower = upper
-            upper = limit
+if 'lf' in args.benchmarks:
+    for lfb in BENCHMARKS_LF:
+        dataframes.append(
+            benchmark_to_dataframe(lfb, args.iterations)
+        )
 
-    index = np.arange(len(counts[BENCHMARKS_C[0]]))
+platforms_without_flexpret = args.platforms.copy()
+platforms_without_flexpret.remove('FlexPRET')
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+platforms_without_flexpret_RP2040 = args.platforms.copy()
+platforms_without_flexpret_RP2040.remove('FlexPRET')
+platforms_without_flexpret_RP2040.remove('RP2040')
 
-    NBARS = len(BENCHMARKS_C)
-    bar_width = 1 / NBARS - 0.2
-    offsets = [(-NBARS + 1 + 2*i)*bar_width / 2 for i in range(NBARS)]
+int_df                   = select_dataframes(dataframes, int=True, lang='C', platforms=platforms_without_flexpret)
+int_df_flexpret          = select_dataframes(dataframes, int=True, lang='C', platforms=['FlexPRET'])
+noint_df                 = select_dataframes(dataframes, int=False, lang='C', platforms=platforms_without_flexpret_RP2040)
+noint_df_flexpret_RP2040 = select_dataframes(dataframes, int=False, lang='C', platforms=['FlexPRET', 'RP2040'])
 
-    for (b, i) in zip(BENCHMARKS_C, range(NBARS)):
-        ax.bar(index + offsets[i], counts[b].values(), bar_width, label=b, color=CMAP[i], hatch=HATCH[i], alpha=0.8)
+int_df_lf                = select_dataframes(dataframes, int=True, lang='lf')
 
-    ax.set_title(TITLES[type])
-    ax.set_xlabel('Time (us)')
+df = pandas.concat(dataframes)
+print(df)
 
-    ax.set_xticks(index)
-    ax.set_xticklabels(["{:.0f}".format(round(x / 1000.0, -1)) for x in counts[BENCHMARKS_C[0]].keys()])
-    ax.legend()
+def dataframe_to_mean_stddev(dataframe) -> (float, float):
+    return dataframe.ts0.mean(), dataframe.ts0.std()
+
+def get_statistcs(df):
+    stats = dict()
+    for p in args.platforms:
+        for i in [True, False]:
+            d = df[(df.platform == p) & (df.have_int == i)]
+            mean, stddev = dataframe_to_mean_stddev(d)
+            print(f'{p} {i} {mean} {stddev}')
+            stats[(p, i)] = (mean, stddev)
+    return stats
+
+stats = get_statistcs(df)
+print(stats)
+
+def normalize(df):
+    for p in platforms_without_flexpret:
+        minval = df[(df.platform == p)].ts0.min()
+        maxval = df[(df.platform == p)].ts0.max()
+        df.loc[(df.platform == p), 'ts0'] = (df[(df.platform == p)].ts0 - minval) / (maxval - minval)
+
+if 'C' in args.benchmarks:
+    for platform in args.platforms:
+        print('{} (int)  : {:.2f} ± {:.2f} ns'.format(platform, stats[(platform, True)][0], stats[(platform, True)][1]))
+        print('{} (noint): {:.2f} ± {:.2f} ns'.format(platform, stats[(platform, False)][0], stats[(platform, False)][1]))
+        print('{} max    : {:.2f} ns'.format(platform, df[df.platform == platform].ts0.max()))
+
+VERTIVAL_LINEWIDTH = 8
+FONTSIZE = 30
+
+################################################################################
+# Plot first graph
+################################################################################
+
+if 'C' in args.benchmarks:
+    normalize(int_df)
+    #grid = sns.displot(data=int_df, x='ts0', hue='platform', kind='kde', fill=True, palette='tab10', legend=False, hue_norm=True, facet_kws={'legend_out': False})
+    grid = sns.violinplot(data=int_df, x='platform', y='ts0', palette='tab10')
+    #grid.ax.axvline(1.0, ymin=0, ymax=1, color='black', linewidth=VERTIVAL_LINEWIDTH, label='FlexPRET')
+
+    #grid.add_legend(title='Platform', fontsize=FONTSIZE, labels=['RPi', 'RP2040', 'nrf52', 'FlexPRET'])
+    #grid.set_xlabels('Execution time (ns)', fontsize=FONTSIZE)
+    ##grid.ax.set_title('Execution time distribution with interrupts', fontsize=FONTSIZE)
+#
+    ##ymax = grid.ax.get_ylim()[1]
+    #FlexPRET_std_dev = round(stats[('FlexPRET', True)][1], 2)
+#
+    #mean = 1.04 * stats[('FlexPRET', True)][0]
+
+    #grid.ax.text(
+    #    mean,
+    #    0.8*ymax,
+    #    f'FlexPRET std.dev.: {FlexPRET_std_dev} ns',
+    #    fontsize=FONTSIZE
+    #)
+    plt.show()
+
+################################################################################
+# Plot second graph
+################################################################################
+
+if 'C' in args.benchmarks:
+    grid = sns.displot(data=noint_df, x='ts0', hue='platform', kind='kde', fill=True, palette='tab10', legend=False, facet_kws={'legend_out': False})
+    grid.ax.axvline(stats[('FlexPRET', False)][0], ymin=0, ymax=1, color='black', linewidth=VERTIVAL_LINEWIDTH, label='FlexPRET\n + RP2040')
+
+    grid.add_legend(title='Platform', fontsize=FONTSIZE, labels=['RPi', 'nrf52', 'FlexPRET\n + RP2040'])
+    grid.set_xlabels('Execution time (ns)', fontsize=FONTSIZE)
+    grid.ax.set_title('Execution time distribution without interrupts', fontsize=FONTSIZE)
+
+    ymax = grid.ax.get_ylim()[1]
+    FlexPRET_std_dev = round(stats[('FlexPRET', True)][1], 2)
+    RP2040_std_dev = round(stats[('RP2040', False)][1], 2)
+
+    FlexPRET_mean = 1.003 * stats[('FlexPRET', False)][0]
+    RP2040_mean = 1.003 * stats[('RP2040', False)][0]
+    mean = (FlexPRET_mean + RP2040_mean) / 2.0
+
+    grid.ax.text(
+        mean,
+        0.8*ymax,
+        f'FlexPRET std.dev.: {FlexPRET_std_dev} ns',
+        fontsize=FONTSIZE
+    )
+    grid.ax.text(
+        mean,
+        0.7*ymax,
+        f'RP2040  std.dev.: {RP2040_std_dev} ns',
+        fontsize=FONTSIZE
+    )
 
     plt.show()
 
-#for haveint in ('int', 'noint'):
-#    for type in ('sampled', 'processed', 'actuated'):
-#        workset = {x: dict_to_list(DATA_LF[x], type) for x in BENCHMARKS}
-#        workset_flat = flatten(workset)
-#        workset_min = min(workset_flat)
-#        workset_max = max(workset_flat)
-#
-#        step = (workset_max - workset_min) / NTICKS
-#        partitions = [ int(workset_min + x * step)  for x in range(NTICKS + 1) ]
-#
-#        counts = dict()
-#        for e in workset:
-#            lower = partitions[0]
-#            upper = partitions[1]
-#            counts[e] = dict()
-#            for limit in partitions[1:]:
-#                counts[e][lower] = len(list(filter(lambda x: lower <= x <= upper, workset[e])))
-#
-#                lower = upper
-#                upper = limit
-#
-#        index = np.arange(len(counts['lf/RP2040/int']))
-#
-#        fig, ax = plt.subplots(figsize=(10, 6))
-#
-#        bar_width = 0.2
-#        have_interrupts = '(interrupts)' if haveint == 'int' else '(no interrupts)'
-#
-#        #ax.bar(index - 3/2*bar_width, counts['nrf52/' + haveint].values(), bar_width, label='nrf52' + have_interrupts, color=CMAP[0], hatch=HATCH[0], alpha=0.8)
-#        ax.bar(index - 1/2*bar_width, counts['lf/RP2040/' + haveint].values(), bar_width, label='rp2040 ' + have_interrupts, color=CMAP[1], hatch=HATCH[1], alpha=0.8)
-#        #ax.bar(index + 1/2*bar_width, counts['FlexPRET/' + haveint].values(), bar_width, label='FlexPRET ' + have_interrupts, color=CMAP[2], hatch=HATCH[2], alpha=0.8)
-#        
-#        ax.set_title(TITLES[type])
-#        ax.set_xlabel('Time (us)')
-#
-#        ax.set_xticks(index)
-#        ax.set_xticklabels(["{:.0f}".format(round(x / 1000.0, -1)) for x in counts['lf/RP2040/int'].keys()])
-#        ax.legend()
-#
-#        plt.show()
+################################################################################
+# Plot LF
+################################################################################
+
+if 'lf' in args.benchmarks:
+    grid = sns.displot(data=int_df_lf, x='ts0', hue='platform', kind='kde', fill=True, palette='tab10', legend=False, facet_kws={'legend_out': False})
+
+    plt.show()

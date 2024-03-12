@@ -1,9 +1,9 @@
 #ifndef LIBCOMMON_H
 #define LIBCOMMON_H
 
-#define WORK_US_LOOP ((int)(1e4))
-#define WORK_US_INT_PERIODIC ((int)(1e2))
-#define WORK_US_INT_SPORADIC ((int)(1e3))
+#define WORK_AMOUNT_LOOP ((int)(1e4))
+#define WORK_AMOUNT_INT_PERIODIC ((int)(1e2))
+#define WORK_AMOUNT_INT_SPORADIC ((int)(1e3))
 
 #if defined(PLATFORM_FLEXPRET)
     #include <flexpret_time.h>
@@ -12,8 +12,9 @@
         fp_wait_for(USEC(x)); \
     } while(0)
 #elif __linux__
+    #include <unistd.h>
     #define work_us_macro(x) do { \
-        for (volatile int i = 0; i < ((x) * 154); i++); \
+        for (volatile int i = 0; i < (x) * 154; i++); \
     } while(0)
 #elif defined(PLATFORM_ZEPHYR)
     #include <zephyr/kernel.h>
@@ -41,7 +42,7 @@
 #elif defined(PLATFORM_ZEPHYR)
     #include <zephyr/kernel.h>
     #define print_string(str) do { \
-        printf("%s", str); \
+        printk("%s", str); \
     } while(0)
 #elif defined(PLATFORM_RP2040)
     int printf_custom(char *fmt, ...);
@@ -54,8 +55,9 @@
 
 #include <stdint.h>
 
-static inline void work_us(const uint32_t us) {
-    work_us_macro(us);
+static inline void work_amount(const uint32_t us) {
+    //work_us_macro(us);
+    for (volatile int i = 0; i < 10 * us; i++);
 }
 
 // Each platform needs to provide its own implementation of these functions
@@ -67,14 +69,14 @@ static inline void on_periodic_interrupt_common(void) {
     extern uint32_t ninterrupts_periodic;
     
     ninterrupts_periodic++;
-    work_us(WORK_US_INT_PERIODIC);
+    work_amount(WORK_AMOUNT_INT_PERIODIC);
 }
 
 static inline void on_sporadic_interrupt_common(void) {
     extern uint32_t ninterrupts_sporadic;
     
     ninterrupts_sporadic++;
-    work_us(WORK_US_INT_SPORADIC);
+    work_amount(WORK_AMOUNT_INT_SPORADIC);
 }
 
 static inline void shutdown(void) {
@@ -93,9 +95,12 @@ static inline void shutdown(void) {
     fp_print_string("Got ");
     fp_print_int(ninterrupts_sporadic);
     fp_print_string(" sporadic interrupts\n");
-#elif __linux__ || defined(PLATFORM_ZEPHYR)
+#elif __linux__
     printf("Got %i periodic interrupts\n", ninterrupts_periodic);
     printf("Got %i sporadic interrupts\n", ninterrupts_sporadic);
+#elif defined(PLATFORM_ZEPHYR)
+    printk("Got %i periodic interrupts\n", ninterrupts_periodic);
+    printk("Got %i sporadic interrupts\n", ninterrupts_sporadic);
 #elif defined(PLATFORM_RP2040)
     printf_custom("Got %i periodic interrupts\n", ninterrupts_periodic);
     printf_custom("Got %i sporadic interrupts\n", ninterrupts_sporadic);

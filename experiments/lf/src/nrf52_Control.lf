@@ -8,17 +8,9 @@ target C {
     single-threaded: true
 };
 
-import ControlCore from "../../lib/libControl.lf"
-
-preamble {=
-    #include "/tmp/config.h"
-=}
+import ControlCoreDelayed from "../../lib/libControl.lf"
 
 main reactor {
-    ctrl = new ControlCore(n_iterations = {= 10 =});
-
-    reaction(shutdown) {=
-        printf("Done app\n");
-    =}
+    ctrl = new ControlCoreDelayed();
 }
 

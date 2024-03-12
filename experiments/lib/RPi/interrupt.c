@@ -11,11 +11,11 @@ uint32_t ninterrupts_periodic = 0;
 uint32_t ninterrupts_sporadic = 0;
 
 void periodic_isr(void) {
-    work_us(WORK_US_INT_PERIODIC);
+    on_periodic_interrupt_common();
 }
 
 void sporadic_isr(void) {
-    work_us(WORK_US_INT_SPORADIC);
+    on_sporadic_interrupt_common();
 }
 
 void configure_pins(void) {
@@ -35,7 +35,4 @@ void send_sync(void) {
 void disable_interrupts(void) {
     system("/usr/bin/gpio edge 16 none");
     system("/usr/bin/gpio edge 1 none");
-    
-    printf("Got %i periodic interrupts\n", ninterrupts_periodic);
-    printf("Got %i sporadic interrupts\n", ninterrupts_sporadic);
 }

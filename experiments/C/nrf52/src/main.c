@@ -32,7 +32,7 @@ int main(void) {
     send_sync();
     
     for (int i = 0; i < CONFIG_NITERATIONS; i++) {
-        work_us(WORK_US_LOOP);
+        work_amount(WORK_AMOUNT_LOOP);
         clock_get(&timestamps[i]);
     }
 

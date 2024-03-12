@@ -74,7 +74,4 @@ void send_sync(void) {
 void disable_interrupts(void) {
     assert(!gpio_pin_interrupt_configure_dt(&periodic_int_spec, GPIO_INT_DISABLE));
     assert(!gpio_pin_interrupt_configure_dt(&sporadic_int_spec, GPIO_INT_DISABLE));
-
-    printf("Got %i periodic interrupts\n", ninterrupts_periodic);
-    printf("Got %i sporadic interrupts\n", ninterrupts_sporadic);
 }
