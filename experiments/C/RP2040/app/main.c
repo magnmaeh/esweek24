@@ -7,10 +7,6 @@
 void printf_custom_init(void);
 
 int clock_get(uint32_t* t) {
-    if (!t) {
-        return -1;
-    }
-    // time struct
     absolute_time_t now;
     uint64_t ns_from_boot;
 
@@ -28,9 +24,9 @@ int main(void) {
     uint32_t timestamps[CONFIG_NITERATIONS];
     uint32_t begin = 0;
 
-    clock_get(&begin);
     send_sync();
 
+    clock_get(&begin);
     for (int i = 0; i < CONFIG_NITERATIONS; i++) {
         work_amount(WORK_AMOUNT_LOOP);
         clock_get(&timestamps[i]);

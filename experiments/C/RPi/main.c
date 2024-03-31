@@ -12,12 +12,12 @@ int main(void) {
 
     uint32_t timestamps[CONFIG_NITERATIONS];
     struct timespec ts_begin;
-    clock_gettime(CLOCK_REALTIME, &ts_begin);
-    uint32_t begin = ts_begin.tv_nsec;
+    struct timespec ts;
 
     send_sync();
 
-    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts_begin);
+    uint32_t begin = ts_begin.tv_nsec;
     for (int i = 0; i < CONFIG_NITERATIONS; i++) {
         work_amount(WORK_AMOUNT_LOOP);
         clock_gettime(CLOCK_REALTIME, &ts);

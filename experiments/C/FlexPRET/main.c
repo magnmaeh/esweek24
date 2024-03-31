@@ -33,9 +33,9 @@ int main(void) {
         fp_print_string("Could not malloc\n");
     }
 
-    uint32_t begin = rdtime();
     send_sync();
 
+    uint32_t begin = rdtime();
     for (int i = 0; i < CONFIG_NITERATIONS; i++) {
         work_amount(WORK_AMOUNT_LOOP);
         timestamps[i] = rdtime();

@@ -217,6 +217,6 @@ prompt_run_single_lf_benchmark() {
 # $1: Iterations
 # $2: Platform
 prompt_run_lf_benchmarks() {
-    prompt_run_single_lf_benchmark $1 $2 Work noint
+    #prompt_run_single_lf_benchmark $1 $2 Work noint
     prompt_run_single_lf_benchmark $1 $2 Control int
 }

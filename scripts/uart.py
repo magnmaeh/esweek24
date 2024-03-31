@@ -1,6 +1,8 @@
+# No longer in use, but at some point this was used to generate `interrupt` signals
+# using a UART Tx pin. It was found too inaccurate and was replaced with the
+# Digital Analog Discovery instead.
+
 from serial import Serial
-import time
-import random
 
 import argparse
 parser = argparse.ArgumentParser()

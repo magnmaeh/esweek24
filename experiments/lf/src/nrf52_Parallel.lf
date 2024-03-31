@@ -1,0 +1,83 @@
+target C {
+    platform: {
+        name: "Zephyr",
+        board: nrf52dk_nrf52832,
+    },
+    files: [
+        "../../lib/common.h",
+        "../../lib/lf_common.h"
+    ],
+    single-threaded: false,
+    workers: 3
+}
+
+preamble {=
+    #include "lf_common.h"
+    #include "/tmp/config.h"
+=}
+
+reactor Compute(n_iterations: int = 10, bank_index: int = 0) {
+    timer t(50 msec, 10 msec)
+    state it: int = 0
+
+    preamble {=
+        struct Sample {
+            instant_t before;
+            instant_t after;
+            int bank_idx;
+        };
+        struct Sample *samples[3];
+    =}
+
+    reaction(startup) {=
+        for (int i = 0; i < 3; i++) {
+            samples[i] = malloc(self->n_iterations * sizeof(struct Sample));
+        }
+    =}
+
+    reaction(t) {=
+        instant_t ts_before = lf_time_physical() - lf_time_logical();
+        work_amount(1000);
+        instant_t ts_after = lf_time_physical() - lf_time_logical();
+
+        samples[self->bank_index][self->it] = (struct Sample) {
+            .before   = ts_before,
+            .after    = ts_after,
+            .bank_idx = self->bank_index
+        };
+
+        if (++self->it == self->n_iterations) {
+            lf_request_stop();
+        }
+    =}
+}
+
+main reactor {
+    computes = new[3] Compute(n_iterations = {= CONFIG_NITERATIONS =})
+    
+    preamble {=
+        struct Sample {
+            instant_t before;
+            instant_t after;
+            int bank_idx;
+        };
+        extern struct Sample *samples[3];
+    =}
+
+    reaction(shutdown) {=
+        for (int i = 0; i < CONFIG_NITERATIONS; i++) {
+            for (int bid = 0; bid < 3; bid++) {
+                struct Sample s = samples[bid][i];
+                printout_log2(
+                    i, bid,
+                    s.before,
+                    s.after
+                );
+            }
+        }
+
+        for (int i = 0; i < 3; i++) {
+            free(samples[i]);
+        }
+    =}
+}

@@ -17,6 +17,8 @@ main reactor {
     ctrl = new ControlCoreDelayed()
     
     reaction(startup) {=
+        // Set clock to 64 MHz to match nrf52
+        set_sys_clock_khz((int)(64e3), true);
         printf_custom_init();
     =}
 }

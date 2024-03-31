@@ -1,15 +1,19 @@
-# esweek24
+# Introduction
 
-Setup for running experiments for paper in [Embedded Systems week](https://esweek.org/) 2024.
+This README.md describes the setup for running the benchmarks in the paper titled `Programming Time-predictable Processors with Lingua Franca`. Anyone should be able to reproduce the results, though this admittedly would require some efforts. Specifically in terms of getting the correct hardware. 
+
+You will find the most important results in the [figs](./figs) folder. These are created using the scrips in the [scripts](./scripts/) folder.
 
 # Table of contents
 
-- [esweek24](#esweek24)
+- [Introduction](#introduction)
 - [Table of contents](#table-of-contents)
-- [Experiments](#experiments)
+- [Benchmarks](#benchmarks)
+  - [Tight control loop in Lingua Franca](#tight-control-loop-in-lingua-franca)
+  - [Parallel reactions in Lingua Franca](#parallel-reactions-in-lingua-franca)
+  - [Interrupt robustness in C (not used in paper)](#interrupt-robustness-in-c-not-used-in-paper)
   - [Setup](#setup)
     - [Periodic vs. sporadic interrupts](#periodic-vs-sporadic-interrupts)
-    - [C vs. Lingua Franca](#c-vs-lingua-franca)
 - [Prerequisites](#prerequisites)
   - [Hardware](#hardware)
   - [Software](#software)
@@ -27,26 +31,37 @@ Setup for running experiments for paper in [Embedded Systems week](https://eswee
     - [Hardware setup](#hardware-setup)
 
 
-# Experiments
+# Benchmarks
 
 For this repository, experiments are conducted for four different platforms.
 1. FlexPRET: a RISC-V precision-timed machine programmed in bare-metal C,
 2. RP2040: an arm processor programmed in bare-metal C,
-3. nrf52dk_nrf52832: an arm processor running Zephyr RTOS,
+3. nRF52dk_nRF52832: an arm processor running Zephyr RTOS,
 4. Raspberry Pi 3b+: an arm processor running a Linux-based OS.
 
 The three latter span the typical design space of an embedded system; from bare-metal to an embedded OS to a "full-blown" OS. On the other hand, FlexPRET is a rather niche processor designed for mixed-criticality systems. The experiment results highlight the advantages of FlexPRET.
 
 The purpose of the experiments is to evaluate jitter (time deviation of computations) on these four platforms, and techniques to mitigate them. These techniques include computer architecture design for predictable timing (e.g., precision-timed machines) and using programming languages with timing semantics (e.g., Lingua Franca).
 
+## Tight control loop in Lingua Franca
+
+The first benchmark implements a simulated tight control loop in Lingua Franca. Interrupts are triggered while the benchmark runs to evaluate the robustness of the underlying platform. The benchmark is run on all four platforms. The benchmarks physical setup is described in [Setup](#setup). Refer to the paper for more details and results.
+
+## Parallel reactions in Lingua Franca
+
+The second benchmark implements three reactors in Lingua Franca that can be run in parallel. It is run on FlexPRET and nRF52. The benchmark is used to evaluate the single threaded versus multithreaded Lingua Franca runtime. This does not include interrupts, so the benchmark setup is much less complicated. The benchmarks physical setup is described in [Setup](#setup), but the Analog Digital Discovery is not used here. Refer to the paper for more details and results.
+
+## Interrupt robustness in C (not used in paper)
+
+This benchmark is not included in the paper because the same robustness is evaluated in the first benchmark. It measures the time it takes to finish a long computation. If interrupts occur during the computation, this yields jitter.
+
 ## Setup
 
-Figure 1 shows the setup for an experiment. The *platform* block is replaced by either of the four platforms, but can be replaced by any other platform as well. 
+Figure 1 shows the setup for the benchmark. The *platform* block is replaced by either of the four platforms, but can be replaced by any other platform as well. 
 
 Figure 1: A diagram of the setup for an experiment.
 
 ![Setup diagram](docs/pics/esweek24-experiment-setup.drawio.png)
-
 
 The personal computer is connected to a [Digilent Analog Discovery](https://digilent.com/reference/test-and-measurement/analog-discovery-2/start), which acts as a waveform generator. Waveforms can be generated on at maximum two output pins - this setup generates *periodic* interrupts on one and *sporadic* interrupts on another. Waveform generation can be triggered by e.g., the rising edge of an external signal. This trigger signal is connected to a general-purpose IO (GPIO) pin on the target platform, and set high when the platform has finished initalization.
 
@@ -66,7 +81,7 @@ The same program/experiment can be run with and without interrupts - the only di
 
 Interrupts that arrive with some constant period (e.g., every 10 ms) are referred to as periodic interrupts. In an embedded system, this could typically be a sensor. 
 
-Interrupts that arrive in a random/sporadic fashion are referred to as sporadic interrupts. This could for instance be packets arriving on a network interface. The characteristics of such packet arrivals are very application-based, but for this experiement it is assumed that a) multiple packets tend to arrive in a small time window and b) the network interface does not receive packets most of the time.
+Interrupts that arrive in a random/sporadic fashion are referred to as sporadic interrupts. This could for instance be packets arriving on a network interface. The characteristics of such packet arrivals are very application-based, but for this  it is assumed that a) multiple packets tend to arrive in a small time window and b) the network interface does not receive packets most of the time.
 
 In the experiments, periodic and sporadic interrupts are handled differently. Periodic interrupts require computation for `WORK_AMOUNT_INT_PERIODIC` time, while sporadic interrupts require `WORK_AMOUNT_INT_SPORADIC` time to compute. These macros are set in `experiments/lib/common.h`. These are intended to be different. Because of this, it is important not to mix up pin connections between the waveform generator and the platform.
 
@@ -79,32 +94,37 @@ Figure 3: Sporadic interrupts
 
 ![Sporadic interrupts](docs/pics/sporadic-interrupts.png)
 
-### C vs. Lingua Franca
-
-*The following assumes some knowledge of Lingua Franca.*
-
-The experiments are implemented in both C and [Lingua Franca](https://www.lf-lang.org/) (LF). They both follow the same structure as described in [Physical setup](./README.md#physical-setup), but for LF the computation simulates a basic control loop. In addition, three timestamps are appended into an array, instead of just one. The three timestamp locations are denoted in Figure 4.
-
-1. This is the connection from a sensor into a processing stage. The purpose of measuring the time here is to evaluate the jitter introduced by the Lingua Franca run-time.
-2. In the processing stage, jitter is introduced by making the computation data-dependent. (For real applications, one would perhaps run some optimization algorithm, which runs longer for some input data.) The computation time in this stage is normally distributed.
-3. In the third location, the jitter into the actuator is evaluted. Because the processing and actuator stages are coupled, jitter from the processing stage will directly translate into jitter in the actuator stage. (Spoiler: The solution is to use a *delayed connection* in LF.)
-
-Figure 4: A basic control loop with lables for each location jitter is evaluted.
-![Basic control loop](./docs/pics/ControlLoop.drawio.png)
-
 # Prerequisites
+
+Only the major prerequisites are listed here. Do not consider this list complete.
 
 ## Hardware
 
-TBD
+1. FlexPRET is synthesized down to an Field-Programmable Gate Array (FPGA). In theory, any FPGA with more than or equal hardware resources to a [Zedboard Zynq-7000](https://digilent.com/shop/zedboard-zynq-7000-arm-fpga-soc-development-board/) should work. Refer to [the FlexPRET repository](lf-flexpret/flexpret/) for more information. In addition, it needs:
+   * A power supply (which probably comes with the FPGA).
+   * A micro-USB cable for uploading bitstreams.
+   * A USB-UART dongle to upload new software and use standard input/output.
+2. RP2040w can be procured [online](https://www.elektor.com/products/raspberry-pi-pico-rp2040-w). It also needs:
+   * A micro-USB cable to upload new software.
+   * Optional: a USB-UART dongle for standard input/output.
+3. nRF52dk_nRF52832 can be procured [online](https://www.nordicsemi.com/Products/Development-hardware/nRF52-DK). It also needs:
+   * A micro-USB cable to upload softare and for standard input/output.
+4. Raspberry Pi 3b+ (or any other Raspberry Pi, for that matter). It also needs:
+   * A Raspberry Pi power supply.
+   * A micro-SD card for operating system.
+   * Either a router or ethernet cable to connect remotely from your own computer.
+   * Optional: a monitor, keyboard, mouse etc. to more easily interface with it.
+5. Digilent Analog Discovery is bought [online](https://digilent.com/reference/test-and-measurement/analog-discovery-2/start). There might be newer versions, which probably are better. 
+6. A number of male-male, female-female, male-female jumper cables.
 
 ## Software
 
-TBD
+1. Vivado for synthesizing RTL code.
+2. Waveforms for using Digilent Analog Discovery.
 
 # Interrupt pulse generation
 
-Digilent Analog Discovery comes with a simple-to-use GUI-based program called [Waveforms](https://digilent.com/shop/software/digilent-waveforms/). A [guide](https://digilent.com/reference/test-and-measurement/guides/waveforms-waveform-generator) explains how to use the waveform generator. The waveform generator features some methods to generate waveform patterns, but generating sporadic interrupt pulses at specific times (such as the ones in Figure 3) is best done using Python.
+Digilent Analog Discovery comes with a simple-to-use GUI-based program called [Waveforms](https://digilent.com/shop/software/digilent-waveforms/). A [guide](https://digilent.com/reference/test-and-measurement/guides/waveforms-waveform-generator) explains how to use the waveform generator. The waveform generator features some methods to generate waveform patterns, but generating sporadic interrupt pulses at specific times (such as the ones in Figure 3) is best done using Python. Use [configuration file](./wave/setup.dwf3work) to get the configuration used for these benchmarks out-of-the-box.
 
 `scripts/genwaves.py` generates a .csv file, which can be uploaded to the Waveform generator. See Figure 5, which highlights some aspects. This list is not meant as a complete guide; refer to the official documentation for more in-depth details.
 
@@ -122,7 +142,7 @@ Figure 5:
 ## Other methods of interrupt pulse generation
 
 There are of course other ways to generate interrupt pulses. Some ideas are:
-1. Use a USB<->UART dongle, set it to a low baudrate, and write `0x00` to it. That might yield a low pulse on the `TX` signal for enough time. However, it is not very easy to control.
+1. Use a USB<->UART dongle, set it to a low baudrate, and write `0x00` to it. That might yield a low pulse on the `TX` signal for enough time. However, it is not very easy to control. See [uart.py](./scripts/uart.py) for a script that was used to do this before it was replaced with the Digital Analog Discovery.
 2. Use an additional microcontroller. It does however increase the complexity of the experiment and introduces *yet* another embedded system to manage.
 
 # Platform specifics
